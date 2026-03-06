@@ -1,0 +1,7 @@
+{
+  "name": "max-connectors",
+  "private": true,
+  "workspaces": [
+    "connector-*"
+  ]
+}
