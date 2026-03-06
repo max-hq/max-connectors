@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "MaxCostExplorerReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast",
+        "ce:GetRightsizingRecommendation",
+        "ce:GetAnomalies",
+        "ce:GetReservationUtilization",
+        "ce:GetReservationCoverage",
+        "ce:GetSavingsPlansUtilization",
+        "ce:GetSavingsPlansCoverage",
+        "budgets:ViewBudget",
+        "cost-optimization-hub:ListRecommendations",
+        "cost-optimization-hub:GetRecommendation",
+        "organizations:ListAccounts"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
