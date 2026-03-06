@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "MaxPerfInsightsReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "pi:GetResourceMetrics",
+        "pi:DescribeDimensionKeys",
+        "pi:GetDimensionKeyDetails",
+        "pi:ListPerformanceAnalysisReports",
+        "pi:GetPerformanceAnalysisReport",
+        "pi:GetResourceMetadata"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
