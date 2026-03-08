@@ -18,12 +18,12 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@max/core": "workspace:*",
-    "@max/connector": "workspace:*",
+    "@max/core": "catalog:",
+    "@max/connector": "catalog:",
     "@aws-sdk/client-pi": "^3.750.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }

@@ -1,7 +1,15 @@
 {
   "name": "max-connectors",
   "private": true,
-  "workspaces": [
-    "connector-*"
-  ]
+	"workspaces": {
+    "packages": [
+      "connector-*"
+    ],
+    "catalog": {
+      "@max/core":"link:@max/core",
+      "@max/connector":"link:@max/connector",
+      "@types/bun": "latest",
+      "typescript": "5.9.3"
+    }
+  }
 }
