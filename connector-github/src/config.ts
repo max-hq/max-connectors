@@ -1,10 +1,7 @@
 /**
  * GitHub connector config.
  *
- * Produced by onboarding - identifies the target repository.
+ * Empty — the authenticated token determines scope.
  */
 
-export interface GitHubConfig {
-  owner: string;
-  repo: string;
-}
+export interface GitHubConfig {}

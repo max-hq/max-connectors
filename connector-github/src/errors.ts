@@ -34,20 +34,6 @@ export const ErrGhCliNotAvailable = GitHub.define("gh_cli_not_available", {
   message: (d) => `GitHub CLI (gh) not available: ${d.reason}`,
 });
 
-/** Invalid repository format provided during onboarding. */
-export const ErrInvalidRepoFormat = GitHub.define("invalid_repo_format", {
-  customProps: ErrFacet.props<{ input: string }>(),
-  facets: [BadInput],
-  message: (d) => `Invalid repository format: "${d.input}". Expected "owner/repo" or a GitHub URL.`,
-});
-
-/** Repository not found or not accessible. */
-export const ErrRepoNotFound = GitHub.define("repo_not_found", {
-  customProps: ErrFacet.props<{ owner: string; repo: string }>(),
-  facets: [],
-  message: (d) => `Repository "${d.owner}/${d.repo}" not found or not accessible.`,
-});
-
 /** Unexpected HTTP status from GitHub API during validation. */
 export const ErrGitHubValidationFailed = GitHub.define("validation_failed", {
   customProps: ErrFacet.props<{ status: number; statusText: string }>(),

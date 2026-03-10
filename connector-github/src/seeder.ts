@@ -1,47 +1,33 @@
 /**
- * GitHubSeeder - Cold-start bootstrapper for the GitHub connector.
+ * GitHubSeeder — Cold-start bootstrapper for the GitHub connector.
  *
- * Creates the root repository entity via GraphQL and returns a plan to
- * discover issues.
+ * Creates the root singleton entity and returns a plan to load
+ * all collections.
  */
 
 import { Seeder, SyncPlan, Step, EntityInput } from "@max/core";
-import { GitHubRepository } from "./entities.js";
+import { GitHubRoot } from "./entities.js";
 import { GitHubContext } from "./context.js";
-
-interface SeedRepoResponse {
-  repository: {
-    id: string;
-    name: string;
-    description: string | null;
-    url: string;
-  };
-}
 
 export const GitHubSeeder = Seeder.create({
   context: GitHubContext,
 
   async seed(ctx, engine) {
-    const data = await ctx.api.graphql<SeedRepoResponse>(
-      `query($owner: String!, $repo: String!) {
-        repository(owner: $owner, name: $repo) {
-          id name description url
-        }
-      }`,
-      { owner: ctx.api.owner, repo: ctx.api.repo },
-    );
+    const user = await ctx.api.getAuthenticatedUser();
+    const login = (user.login as string) ?? "";
 
-    const repo = data.repository;
-    const repoRef = GitHubRepository.ref(repo.id);
+    const rootRef = GitHubRoot.ref("root");
 
-    await engine.store(EntityInput.create(repoRef, {
-      name: repo.name,
-      description: repo.description ?? undefined,
-      url: repo.url,
-    }));
+    await engine.store(EntityInput.create(rootRef, { login }));
 
     return SyncPlan.create([
-      Step.forRoot(repoRef).loadCollection("issues"),
+      Step.forRoot(rootRef).loadCollection("repositories"),
+      Step.forRoot(rootRef).loadCollection("pullRequests"),
+      Step.forRoot(rootRef).loadCollection("commits"),
+      Step.forRoot(rootRef).loadCollection("workflowRuns"),
+      Step.forRoot(rootRef).loadCollection("issues"),
+      Step.forRoot(rootRef).loadCollection("reviews"),
+      Step.forRoot(rootRef).loadCollection("users"),
     ]);
   },
 });
