@@ -3,12 +3,39 @@
  */
 
 import { Schema } from "@max/core";
-import { GitHubUser, GitHubIssue, GitHubRepository } from "./entities.js";
+import {
+  GitHubUser,
+  GitHubRepository,
+  GitHubIssue,
+  GitHubCommit,
+  GitHubPullRequest,
+  GitHubWorkflowRun,
+  GitHubReview,
+  GitHubRoot,
+} from "./entities.js";
 
-export { GitHubUser, GitHubIssue, GitHubRepository };
+export {
+  GitHubUser,
+  GitHubRepository,
+  GitHubIssue,
+  GitHubCommit,
+  GitHubPullRequest,
+  GitHubWorkflowRun,
+  GitHubReview,
+  GitHubRoot,
+};
 
 export const GitHubSchema = Schema.create({
   namespace: "github",
-  entities: [GitHubUser, GitHubIssue, GitHubRepository],
-  roots: [GitHubRepository],
+  entities: [
+    GitHubUser,
+    GitHubRepository,
+    GitHubIssue,
+    GitHubCommit,
+    GitHubPullRequest,
+    GitHubWorkflowRun,
+    GitHubReview,
+    GitHubRoot,
+  ],
+  roots: [GitHubRoot],
 });

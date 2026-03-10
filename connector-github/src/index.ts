@@ -1,14 +1,23 @@
 /**
- * @max/connector-github - GitHub Issues connector.
+ * @max/connector-github — GitHub connector.
+ *
+ * Syncs repositories, pull requests, commits, workflow runs, issues,
+ * and users from all repos accessible to the authenticated token.
  */
 
 import { Context } from "@max/core";
 import { ConnectorDef, ConnectorModule, Installation } from "@max/connector";
 import { GitHubSchema } from "./schema.js";
 import { GitHubSeeder } from "./seeder.js";
+import { GitHubRootResolver } from "./resolvers/root-resolver.js";
 import { GitHubRepositoryResolver } from "./resolvers/repository-resolver.js";
 import { GitHubIssueResolver } from "./resolvers/issue-resolver.js";
 import { GitHubUserResolver } from "./resolvers/user-resolver.js";
+import { GitHubPullRequestResolver } from "./resolvers/pr-resolver.js";
+
+import { GitHubCommitResolver } from "./resolvers/commit-resolver.js";
+import { GitHubWorkflowRunResolver } from "./resolvers/workflow-run-resolver.js";
+import { GitHubReviewResolver } from "./resolvers/review-resolver.js";
 import { GitHubOnboarding } from "./onboarding.js";
 import { GitHubContext } from "./context.js";
 import { GitHubClient } from "./github-client.js";
@@ -22,7 +31,7 @@ import type { GitHubConfig } from "./config.js";
 const GitHubDef = ConnectorDef.create<GitHubConfig>({
   name: "github",
   displayName: "GitHub",
-  description: "GitHub Issues connector - syncs issues from a repository",
+  description: "GitHub connector — syncs repos, PRs, commits, workflow runs, issues, and users",
   icon: "",
   version: "0.1.0",
   scopes: [],
@@ -30,9 +39,14 @@ const GitHubDef = ConnectorDef.create<GitHubConfig>({
   onboarding: GitHubOnboarding,
   seeder: GitHubSeeder,
   resolvers: [
+    GitHubRootResolver,
     GitHubRepositoryResolver,
     GitHubIssueResolver,
+    GitHubCommitResolver,
     GitHubUserResolver,
+    GitHubPullRequestResolver,
+    GitHubWorkflowRunResolver,
+    GitHubReviewResolver,
   ],
 });
 
@@ -42,9 +56,9 @@ const GitHubDef = ConnectorDef.create<GitHubConfig>({
 
 const GitHubConnector = ConnectorModule.create<GitHubConfig>({
   def: GitHubDef,
-  initialise(config, credentials) {
+  initialise(_config, credentials) {
     const tokenHandle = credentials.get(GitHubToken);
-    const api = new GitHubClient(tokenHandle, config.owner, config.repo);
+    const api = new GitHubClient(tokenHandle);
 
     const ctx = Context.build(GitHubContext, { api });
 
