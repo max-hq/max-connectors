@@ -18,11 +18,11 @@
     "test": "bun test --pass-with-no-tests"
   },
   "dependencies": {
-    "@max/core": "workspace:*",
-    "@max/connector": "workspace:*"
+    "@max/core": "catalog:",
+    "@max/connector": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }
