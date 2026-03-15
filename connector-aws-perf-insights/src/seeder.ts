@@ -12,12 +12,12 @@ import { AWSPerfInsightsContext } from "./context.js";
 export const AWSPerfInsightsSeeder = Seeder.create({
   context: AWSPerfInsightsContext,
 
-  async seed(ctx, engine) {
+  async seed(env) {
     const rootRef = AWSPerfInsightsRoot.ref("root");
 
-    await engine.store(EntityInput.create(rootRef, {
-      region: ctx.api.region,
-      dbResourceId: ctx.api.dbResourceId,
+    await env.engine.store(EntityInput.create(rootRef, {
+      region: env.ctx.api.region,
+      dbResourceId: env.ctx.api.dbResourceId,
     }));
 
     return SyncPlan.create([

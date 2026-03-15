@@ -6,10 +6,18 @@
       "connector-*"
     ],
     "catalog": {
-      "@max/core":"link:@max/core",
-      "@max/connector":"link:@max/connector",
+      "@max/core": "link:@max/core",
+      "@max/connector": "link:@max/connector",
       "@types/bun": "latest",
       "typescript": "5.9.3"
     }
-  }
+  },
+  "scripts": {
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test --continue"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.17"
+   },
+  "packageManager": "bun@1.3.9"
 }

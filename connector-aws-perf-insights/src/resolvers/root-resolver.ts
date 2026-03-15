@@ -11,8 +11,15 @@ import {
   AWSPIAnalysisReport,
 } from "../entities.js";
 import { AWSPerfInsightsContext } from "../context.js";
-import { get7DayRange, get24HourRange, type MetricQuery } from "../pi-client.js";
+import {get7DayRange, get24HourRange, type MetricQuery, type ResourceMetricsResult} from "../pi-client.js";
 import { stableId } from "../id-utils.js";
+import {
+  GetResourceMetrics,
+  DescribeDimensionKeys,
+  GetDimensionKeyDetails,
+  ListAnalysisReports,
+  GetAnalysisReport,
+} from "../operations.js";
 
 // ============================================================================
 // Root basic loader (entity — autoload fallback for scalar fields)
@@ -24,10 +31,10 @@ export const RootBasicLoader = Loader.entity({
   entity: AWSPerfInsightsRoot,
   strategy: "autoload",
 
-  async load(ref, ctx) {
+  async load(ref, env) {
     return EntityInput.create(ref, {
-      region: ctx.api.region,
-      dbResourceId: ctx.api.dbResourceId,
+      region: env.ctx.api.region,
+      dbResourceId: env.ctx.api.dbResourceId,
     });
   },
 });
@@ -48,7 +55,7 @@ export const MetricsLoader = Loader.collection({
   entity: AWSPerfInsightsRoot,
   target: AWSPIMetricResult,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     const items: EntityInput<typeof AWSPIMetricResult>[] = [];
 
     // 7-day window at 1-hour period for all metrics
@@ -57,7 +64,13 @@ export const MetricsLoader = Loader.collection({
 
     let nextToken: string | undefined;
     do {
-      const result = await ctx.api.getResourceMetrics(hourlyQueries, weekStart, weekEnd, 3600, nextToken);
+      const result = await env.ops.execute(GetResourceMetrics, {
+        metricQueries: hourlyQueries,
+        startTime: weekStart,
+        endTime: weekEnd,
+        periodSeconds: 3600,
+        nextToken,
+      });
       nextToken = result.nextToken;
 
       for (const metricData of result.metricList ?? []) {
@@ -86,7 +99,13 @@ export const MetricsLoader = Loader.collection({
 
     nextToken = undefined;
     do {
-      const result = await ctx.api.getResourceMetrics(fineQuery, dayStart, dayEnd, 300, nextToken);
+      const result: ResourceMetricsResult = await env.ops.execute(GetResourceMetrics, {
+        metricQueries: fineQuery,
+        startTime: dayStart,
+        endTime: dayEnd,
+        periodSeconds: 300,
+        nextToken,
+      });
       nextToken = result.nextToken;
 
       for (const metricData of result.metricList ?? []) {
@@ -123,7 +142,7 @@ export const TopSQLLoader = Loader.collection({
   entity: AWSPerfInsightsRoot,
   target: AWSPITopSQL,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     const items: EntityInput<typeof AWSPITopSQL>[] = [];
     const { start, end } = get24HourRange();
     const periodStart = start.toISOString();
@@ -131,15 +150,14 @@ export const TopSQLLoader = Loader.collection({
 
     let nextToken: string | undefined;
     do {
-      const result = await ctx.api.describeDimensionKeys(
-        "db.load.avg",
-        { Group: "db.sql", Limit: 25 },
-        start,
-        end,
-        3600,
-        undefined,
+      const result = await env.ops.execute(DescribeDimensionKeys, {
+        metric: "db.load.avg",
+        groupBy: { Group: "db.sql", Limit: 25 },
+        startTime: start,
+        endTime: end,
+        periodSeconds: 3600,
         nextToken,
-      );
+      });
       nextToken = result.nextToken;
 
       for (const key of result.keys ?? []) {
@@ -150,7 +168,10 @@ export const TopSQLLoader = Loader.collection({
         let sqlText = key.Dimensions?.["db.sql.statement"] ?? "";
         if (sqlId && !sqlText) {
           try {
-            const details = await ctx.api.getDimensionKeyDetails("db.sql", sqlId);
+            const details = await env.ops.execute(GetDimensionKeyDetails, {
+              group: "db.sql",
+              keyId: sqlId,
+            });
             sqlText = details.dimensions?.[0]?.Value ?? "";
           } catch {
             // If we can't get the SQL text, use the truncated version
@@ -188,7 +209,7 @@ export const TopWaitEventsLoader = Loader.collection({
   entity: AWSPerfInsightsRoot,
   target: AWSPITopWaitEvent,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     const items: EntityInput<typeof AWSPITopWaitEvent>[] = [];
     const { start, end } = get24HourRange();
     const periodStart = start.toISOString();
@@ -196,15 +217,14 @@ export const TopWaitEventsLoader = Loader.collection({
 
     let nextToken: string | undefined;
     do {
-      const result = await ctx.api.describeDimensionKeys(
-        "db.load.avg",
-        { Group: "db.wait_event", Limit: 25 },
-        start,
-        end,
-        3600,
-        undefined,
+      const result = await env.ops.execute(DescribeDimensionKeys, {
+        metric: "db.load.avg",
+        groupBy: { Group: "db.wait_event", Limit: 25 },
+        startTime: start,
+        endTime: end,
+        periodSeconds: 3600,
         nextToken,
-      );
+      });
       nextToken = result.nextToken;
 
       for (const key of result.keys ?? []) {
@@ -239,12 +259,12 @@ export const AnalysisReportsLoader = Loader.collection({
   entity: AWSPerfInsightsRoot,
   target: AWSPIAnalysisReport,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     const items: EntityInput<typeof AWSPIAnalysisReport>[] = [];
     let nextToken: string | undefined;
 
     do {
-      const result = await ctx.api.listAnalysisReports(nextToken);
+      const result = await env.ops.execute(ListAnalysisReports, { nextToken });
       nextToken = result.nextToken;
 
       for (const report of result.reports ?? []) {
@@ -260,7 +280,7 @@ export const AnalysisReportsLoader = Loader.collection({
 
         if (status === "SUCCEEDED") {
           try {
-            const detail = await ctx.api.getAnalysisReport(reportId);
+            const detail = await env.ops.execute(GetAnalysisReport, { reportId });
             const insights = detail.report?.Insights ?? [];
             insightsSummary = JSON.stringify(insights);
 

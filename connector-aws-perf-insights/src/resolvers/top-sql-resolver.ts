@@ -20,7 +20,7 @@ export const TopSQLBasicLoader = Loader.entity({
   entity: AWSPITopSQL,
   strategy: "autoload",
 
-  async load(ref, _ctx) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {});
   },
 });

@@ -20,7 +20,7 @@ export const MetricResultBasicLoader = Loader.entity({
   entity: AWSPIMetricResult,
   strategy: "autoload",
 
-  async load(ref, _ctx) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {});
   },
 });

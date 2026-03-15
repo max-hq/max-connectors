@@ -12,11 +12,11 @@ import { AWSCostExplorerContext } from "./context.js";
 export const AWSCostExplorerSeeder = Seeder.create({
   context: AWSCostExplorerContext,
 
-  async seed(ctx, engine) {
+  async seed(env) {
     const rootRef = AWSCostExplorerRoot.ref("root");
 
-    await engine.store(EntityInput.create(rootRef, {
-      region: ctx.api.region,
+    await env.engine.store(EntityInput.create(rootRef, {
+      region: env.ctx.api.region,
     }));
 
     return SyncPlan.create([

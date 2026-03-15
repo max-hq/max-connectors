@@ -20,9 +20,29 @@ import {
   AWSAccount,
 } from "../entities.js";
 import { AWSCostExplorerContext } from "../context.js";
-import { getMonthlyRange, getDailyRange, type CostExplorerClient, type TimePeriod } from "../cost-explorer-client.js";
+import { getMonthlyRange, getDailyRange, type TimePeriod } from "../cost-explorer-client.js";
 import { stableId } from "../id-utils.js";
 import type { Granularity, Metric } from "@aws-sdk/client-cost-explorer";
+import {
+  GetCostAndUsage,
+  GetCostAndUsageByDimension,
+  GetCostForecast,
+  GetAnomalies,
+  GetRightsizingRecommendations,
+  GetReservationUtilization,
+  GetSavingsPlansUtilization,
+  GetReservationCoverage,
+  GetSavingsPlansCoverage,
+  GetBudgets,
+  GetOptimizationRecs,
+  GetAccounts,
+} from "../operations.js";
+
+// ============================================================================
+// Types for env parameter
+// ============================================================================
+
+type Env = Parameters<Parameters<typeof Loader.collection>[0]["load"]>[2];
 
 // ============================================================================
 // Helpers
@@ -30,7 +50,7 @@ import type { Granularity, Metric } from "@aws-sdk/client-cost-explorer";
 
 /** Fetch all pages of GetCostAndUsage for a given time period + granularity. */
 async function fetchAllCostData(
-  api: CostExplorerClient,
+  env: Env,
   timePeriod: TimePeriod,
   granularity: Granularity,
 ): Promise<EntityInput<typeof AWSCostRecord>[]> {
@@ -38,7 +58,11 @@ async function fetchAllCostData(
   let nextPageToken: string | undefined;
 
   do {
-    const result = await api.getCostAndUsage(timePeriod, granularity, nextPageToken);
+    const result = await env.ops.execute(GetCostAndUsage, {
+      timePeriod,
+      granularity,
+      nextPageToken,
+    });
     nextPageToken = result.nextPageToken;
 
     for (const period of result.resultsByTime ?? []) {
@@ -72,7 +96,7 @@ async function fetchAllCostData(
 
 /** Fetch all pages of GetCostAndUsage grouped by an arbitrary dimension. */
 async function fetchAllDimensionData(
-  api: CostExplorerClient,
+  env: Env,
   timePeriod: TimePeriod,
   granularity: Granularity,
   dimensionKey: string,
@@ -81,7 +105,12 @@ async function fetchAllDimensionData(
   let nextPageToken: string | undefined;
 
   do {
-    const result = await api.getCostAndUsageByDimension(timePeriod, granularity, dimensionKey, nextPageToken);
+    const result = await env.ops.execute(GetCostAndUsageByDimension, {
+      timePeriod,
+      granularity,
+      dimensionKey,
+      nextPageToken,
+    });
     nextPageToken = result.nextPageToken;
 
     for (const period of result.resultsByTime ?? []) {
@@ -124,9 +153,9 @@ export const RootBasicLoader = Loader.entity({
   entity: AWSCostExplorerRoot,
   strategy: "autoload",
 
-  async load(ref, ctx) {
+  async load(ref, env) {
     return EntityInput.create(ref, {
-      region: ctx.api.region,
+      region: env.ctx.api.region,
     });
   },
 });
@@ -141,9 +170,9 @@ export const CostRecordsLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSCostRecord,
 
-  async load(_ref, _page, ctx) {
-    const monthlyItems = await fetchAllCostData(ctx.api, getMonthlyRange(), "MONTHLY");
-    const dailyItems = await fetchAllCostData(ctx.api, getDailyRange(), "DAILY");
+  async load(_ref, _page, env) {
+    const monthlyItems = await fetchAllCostData(env, getMonthlyRange(), "MONTHLY");
+    const dailyItems = await fetchAllCostData(env, getDailyRange(), "DAILY");
 
     const all = [...monthlyItems, ...dailyItems];
     return Page.from(all, false, undefined);
@@ -160,8 +189,8 @@ export const ServiceSummariesLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSServiceSummary,
 
-  async load(_ref, _page, ctx) {
-    const monthlyItems = await fetchAllCostData(ctx.api, getMonthlyRange(), "MONTHLY");
+  async load(_ref, _page, env) {
+    const monthlyItems = await fetchAllCostData(env, getMonthlyRange(), "MONTHLY");
 
     const byService = new Map<string, {
       totalBlendedCost: number;
@@ -216,13 +245,13 @@ export const CostByDimensionLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSCostByDimension,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const all: EntityInput<typeof AWSCostByDimension>[] = [];
 
       for (const dim of DIMENSION_KEYS) {
-        const monthlyItems = await fetchAllDimensionData(ctx.api, getMonthlyRange(), "MONTHLY", dim);
-        const dailyItems = await fetchAllDimensionData(ctx.api, getDailyRange(), "DAILY", dim);
+        const monthlyItems = await fetchAllDimensionData(env, getMonthlyRange(), "MONTHLY", dim);
+        const dailyItems = await fetchAllDimensionData(env, getDailyRange(), "DAILY", dim);
         all.push(...monthlyItems, ...dailyItems);
       }
 
@@ -245,12 +274,15 @@ export const ForecastsLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSCostForecast,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSCostForecast>[] = [];
 
       for (const metric of FORECAST_METRICS) {
-        const result = await ctx.api.getCostForecast(metric, "MONTHLY");
+        const result = await env.ops.execute(GetCostForecast, {
+          metric,
+          granularity: "MONTHLY",
+        });
 
         for (const entry of result.forecastResultsByTime ?? []) {
           const periodStart = entry.TimePeriod?.Start ?? "";
@@ -289,13 +321,13 @@ export const AnomaliesLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSCostAnomaly,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSCostAnomaly>[] = [];
       let nextPageToken: string | undefined;
 
       do {
-        const result = await ctx.api.getAnomalies(nextPageToken);
+        const result = await env.ops.execute(GetAnomalies, { nextPageToken });
         nextPageToken = result.nextPageToken;
 
         for (const anomaly of result.anomalies ?? []) {
@@ -344,13 +376,13 @@ export const RightsizingRecsLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSRightsizingRec,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSRightsizingRec>[] = [];
       let nextPageToken: string | undefined;
 
       do {
-        const result = await ctx.api.getRightsizingRecommendations(nextPageToken);
+        const result = await env.ops.execute(GetRightsizingRecommendations, { nextPageToken });
         nextPageToken = result.nextPageToken;
 
         for (const rec of result.recommendations ?? []) {
@@ -400,13 +432,17 @@ export const ReservationUtilizationLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSReservationUtilization,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSReservationUtilization>[] = [];
       let nextPageToken: string | undefined;
 
       do {
-        const result = await ctx.api.getReservationUtilization(getMonthlyRange(), "MONTHLY", nextPageToken);
+        const result = await env.ops.execute(GetReservationUtilization, {
+          timePeriod: getMonthlyRange(),
+          granularity: "MONTHLY",
+          nextPageToken,
+        });
         nextPageToken = result.nextPageToken;
 
         for (const entry of result.utilizationsByTime ?? []) {
@@ -453,11 +489,14 @@ export const SavingsPlanUtilizationLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSSavingsPlanUtilization,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSSavingsPlanUtilization>[] = [];
 
-      const result = await ctx.api.getSavingsPlansUtilization(getMonthlyRange(), "MONTHLY");
+      const result = await env.ops.execute(GetSavingsPlansUtilization, {
+        timePeriod: getMonthlyRange(),
+        granularity: "MONTHLY",
+      });
 
       for (const entry of result.utilizationsByTime ?? []) {
         const periodStart = entry.TimePeriod?.Start ?? "";
@@ -500,13 +539,17 @@ export const ReservationCoverageLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSReservationCoverage,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSReservationCoverage>[] = [];
       let nextPageToken: string | undefined;
 
       do {
-        const result = await ctx.api.getReservationCoverage(getMonthlyRange(), "MONTHLY", nextPageToken);
+        const result = await env.ops.execute(GetReservationCoverage, {
+          timePeriod: getMonthlyRange(),
+          granularity: "MONTHLY",
+          nextPageToken,
+        });
         nextPageToken = result.nextPageToken;
 
         for (const entry of result.coveragesByTime ?? []) {
@@ -547,13 +590,17 @@ export const SavingsPlanCoverageLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSSavingsPlanCoverage,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSSavingsPlanCoverage>[] = [];
       let nextToken: string | undefined;
 
       do {
-        const result = await ctx.api.getSavingsPlansCoverage(getMonthlyRange(), "MONTHLY", nextToken);
+        const result = await env.ops.execute(GetSavingsPlansCoverage, {
+          timePeriod: getMonthlyRange(),
+          granularity: "MONTHLY",
+          nextToken,
+        });
         nextToken = result.nextToken;
 
         for (const entry of result.coveragesByTime ?? []) {
@@ -593,13 +640,16 @@ export const BudgetsLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSBudget,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSBudget>[] = [];
       let nextToken: string | undefined;
 
       do {
-        const result = await ctx.api.getBudgets(ctx.api.accountId, nextToken);
+        const result = await env.ops.execute(GetBudgets, {
+          accountId: env.ctx.api.accountId,
+          nextToken,
+        });
         nextToken = result.nextToken;
 
         for (const budget of result.budgets ?? []) {
@@ -640,13 +690,13 @@ export const OptimizationRecsLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSOptimizationRec,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSOptimizationRec>[] = [];
       let nextToken: string | undefined;
 
       do {
-        const result = await ctx.api.getOptimizationRecs(nextToken);
+        const result = await env.ops.execute(GetOptimizationRecs, { nextToken });
         nextToken = result.nextToken;
 
         for (const rec of result.items ?? []) {
@@ -689,13 +739,13 @@ export const AccountsLoader = Loader.collection({
   entity: AWSCostExplorerRoot,
   target: AWSAccount,
 
-  async load(_ref, _page, ctx) {
+  async load(_ref, _page, env) {
     try {
       const items: EntityInput<typeof AWSAccount>[] = [];
       let nextToken: string | undefined;
 
       do {
-        const result = await ctx.api.getAccounts(nextToken);
+        const result = await env.ops.execute(GetAccounts, { nextToken });
         nextToken = result.nextToken;
 
         for (const account of result.accounts ?? []) {

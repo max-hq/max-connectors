@@ -20,7 +20,7 @@ export const AnalysisReportBasicLoader = Loader.entity({
   entity: AWSPIAnalysisReport,
   strategy: "autoload",
 
-  async load(ref, _ctx) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {});
   },
 });

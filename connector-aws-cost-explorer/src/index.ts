@@ -27,6 +27,7 @@ import { AWSCostExplorerOnboarding } from "./onboarding.js";
 import { AWSCostExplorerContext } from "./context.js";
 import { CostExplorerClient } from "./cost-explorer-client.js";
 import { AWSAccessKeyId, AWSSecretAccessKey } from "./credentials.js";
+import { AWSCostExplorerOperations } from "./operations.js";
 import type { AWSCostExplorerConfig } from "./config.js";
 
 // ============================================================================
@@ -59,6 +60,7 @@ const AWSCostExplorerDef = ConnectorDef.create<AWSCostExplorerConfig>({
     AWSOptimizationRecResolver,
     AWSAccountResolver,
   ],
+  operations: [...AWSCostExplorerOperations],
 });
 
 // ============================================================================
@@ -67,9 +69,9 @@ const AWSCostExplorerDef = ConnectorDef.create<AWSCostExplorerConfig>({
 
 const AWSCostExplorerConnector = ConnectorModule.create<AWSCostExplorerConfig>({
   def: AWSCostExplorerDef,
-  initialise(config, credentials) {
-    const accessKeyIdHandle = credentials.get(AWSAccessKeyId);
-    const secretAccessKeyHandle = credentials.get(AWSSecretAccessKey);
+  initialise(config, platform) {
+    const accessKeyIdHandle = platform.credentials.get(AWSAccessKeyId);
+    const secretAccessKeyHandle = platform.credentials.get(AWSSecretAccessKey);
     const api = new CostExplorerClient(accessKeyIdHandle, secretAccessKeyHandle, config.region);
 
     const ctx = Context.build(AWSCostExplorerContext, { api });
@@ -78,10 +80,10 @@ const AWSCostExplorerConnector = ConnectorModule.create<AWSCostExplorerConfig>({
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();

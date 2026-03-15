@@ -18,6 +18,7 @@ import { AWSPerfInsightsOnboarding } from "./onboarding.js";
 import { AWSPerfInsightsContext } from "./context.js";
 import { PIClient } from "./pi-client.js";
 import { AWSAccessKeyId, AWSSecretAccessKey } from "./credentials.js";
+import { AWSPerfInsightsOperations } from "./operations.js";
 import type { AWSPerfInsightsConfig } from "./config.js";
 
 // ============================================================================
@@ -41,6 +42,7 @@ const AWSPerfInsightsDef = ConnectorDef.create<AWSPerfInsightsConfig>({
     AWSPITopWaitEventResolver,
     AWSPIAnalysisReportResolver,
   ],
+  operations: [...AWSPerfInsightsOperations],
 });
 
 // ============================================================================
@@ -49,9 +51,9 @@ const AWSPerfInsightsDef = ConnectorDef.create<AWSPerfInsightsConfig>({
 
 const AWSPerfInsightsConnector = ConnectorModule.create<AWSPerfInsightsConfig>({
   def: AWSPerfInsightsDef,
-  initialise(config, credentials) {
-    const accessKeyIdHandle = credentials.get(AWSAccessKeyId);
-    const secretAccessKeyHandle = credentials.get(AWSSecretAccessKey);
+  initialise(config, platform) {
+    const accessKeyIdHandle = platform.credentials.get(AWSAccessKeyId);
+    const secretAccessKeyHandle = platform.credentials.get(AWSSecretAccessKey);
     const api = new PIClient(accessKeyIdHandle, secretAccessKeyHandle, config.region, config.dbResourceId);
 
     const ctx = Context.build(AWSPerfInsightsContext, { api });
@@ -60,10 +62,10 @@ const AWSPerfInsightsConnector = ConnectorModule.create<AWSPerfInsightsConfig>({
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();
