@@ -1,7 +1,7 @@
 {
   "name": "max-connectors",
   "private": true,
-	"workspaces": {
+  "workspaces": {
     "packages": [
       "connector-*"
     ],
