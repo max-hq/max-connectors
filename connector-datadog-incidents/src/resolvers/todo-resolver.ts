@@ -20,7 +20,7 @@ export const TodoBasicLoader = Loader.entity({
   entity: DatadogIncidentTodo,
   strategy: "autoload",
 
-  async load(ref, _ctx) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {});
   },
 });
@@ -31,7 +31,7 @@ export const TodoBasicLoader = Loader.entity({
 
 export const DatadogIncidentTodoResolver = Resolver.for(DatadogIncidentTodo, {
   todoId: TodoBasicLoader.field("todoId"),
-  incidentId: TodoBasicLoader.field("incidentId"),
+  incident: TodoBasicLoader.field("incident"),
   content: TodoBasicLoader.field("content"),
   completed: TodoBasicLoader.field("completed"),
   dueDate: TodoBasicLoader.field("dueDate"),

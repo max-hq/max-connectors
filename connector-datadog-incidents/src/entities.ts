@@ -8,11 +8,36 @@ import {
   EntityDef,
   Field,
   type ScalarField,
+  type RefField,
   type CollectionField,
 } from "@max/core";
 
 // ============================================================================
-// DatadogIncident (leaf — one incident)
+// DatadogIncidentTodo (leaf — one todo item for an incident)
+// ============================================================================
+
+export interface DatadogIncidentTodo extends EntityDef<{
+  todoId: ScalarField<"string">;
+  incident: RefField<DatadogIncident>;
+  content: ScalarField<"string">;
+  completed: ScalarField<"string">;
+  dueDate: ScalarField<"string">;
+  created: ScalarField<"string">;
+  modified: ScalarField<"string">;
+}> {}
+
+export const DatadogIncidentTodo: DatadogIncidentTodo = EntityDef.create("DatadogIncidentTodo", {
+  todoId: Field.string(),
+  incident: Field.refThunk(() => DatadogIncident),
+  content: Field.string(),
+  completed: Field.string(),
+  dueDate: Field.string(),
+  created: Field.string(),
+  modified: Field.string(),
+});
+
+// ============================================================================
+// DatadogIncident (one incident — owns a collection of todos)
 // ============================================================================
 
 export interface DatadogIncident extends EntityDef<{
@@ -32,6 +57,7 @@ export interface DatadogIncident extends EntityDef<{
   timeToRepair: ScalarField<"number">;
   timeToResolve: ScalarField<"number">;
   visibility: ScalarField<"string">;
+  todos: CollectionField<DatadogIncidentTodo>;
 }> {}
 
 export const DatadogIncident: DatadogIncident = EntityDef.create("DatadogIncident", {
@@ -51,44 +77,19 @@ export const DatadogIncident: DatadogIncident = EntityDef.create("DatadogInciden
   timeToRepair: Field.number(),
   timeToResolve: Field.number(),
   visibility: Field.string(),
+  todos: Field.collection(DatadogIncidentTodo),
 });
 
 // ============================================================================
-// DatadogIncidentTodo (leaf — one todo item for an incident)
-// ============================================================================
-
-export interface DatadogIncidentTodo extends EntityDef<{
-  todoId: ScalarField<"string">;
-  incidentId: ScalarField<"string">;
-  content: ScalarField<"string">;
-  completed: ScalarField<"string">;
-  dueDate: ScalarField<"string">;
-  created: ScalarField<"string">;
-  modified: ScalarField<"string">;
-}> {}
-
-export const DatadogIncidentTodo: DatadogIncidentTodo = EntityDef.create("DatadogIncidentTodo", {
-  todoId: Field.string(),
-  incidentId: Field.string(),
-  content: Field.string(),
-  completed: Field.string(),
-  dueDate: Field.string(),
-  created: Field.string(),
-  modified: Field.string(),
-});
-
-// ============================================================================
-// DatadogIncidentsRoot (root singleton — all collections)
+// DatadogIncidentsRoot (root singleton)
 // ============================================================================
 
 export interface DatadogIncidentsRoot extends EntityDef<{
   site: ScalarField<"string">;
   incidents: CollectionField<DatadogIncident>;
-  todos: CollectionField<DatadogIncidentTodo>;
 }> {}
 
 export const DatadogIncidentsRoot: DatadogIncidentsRoot = EntityDef.create("DatadogIncidentsRoot", {
   site: Field.string(),
   incidents: Field.collection(DatadogIncident),
-  todos: Field.collection(DatadogIncidentTodo),
 });

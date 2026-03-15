@@ -16,6 +16,7 @@ import { DatadogMetricsOnboarding } from "./onboarding.js";
 import { DatadogMetricsContext } from "./context.js";
 import { DatadogClient } from "./datadog-client.js";
 import { DatadogApiKey, DatadogAppKey } from "./credentials.js";
+import { DatadogMetricsOperations } from "./operations.js";
 import type { DatadogMetricsConfig } from "./config.js";
 
 // ============================================================================
@@ -37,6 +38,7 @@ const DatadogMetricsDef = ConnectorDef.create<DatadogMetricsConfig>({
     DatadogMetricResolver,
     DatadogMetricTimeseriesResolver,
   ],
+  operations: [...DatadogMetricsOperations],
 });
 
 // ============================================================================
@@ -45,9 +47,9 @@ const DatadogMetricsDef = ConnectorDef.create<DatadogMetricsConfig>({
 
 const DatadogMetricsConnector = ConnectorModule.create<DatadogMetricsConfig>({
   def: DatadogMetricsDef,
-  initialise(config, credentials) {
-    const apiKeyHandle = credentials.get(DatadogApiKey);
-    const appKeyHandle = credentials.get(DatadogAppKey);
+  initialise(config, platform) {
+    const apiKeyHandle = platform.credentials.get(DatadogApiKey);
+    const appKeyHandle = platform.credentials.get(DatadogAppKey);
     const api = new DatadogClient(
       apiKeyHandle,
       appKeyHandle,
@@ -61,10 +63,10 @@ const DatadogMetricsConnector = ConnectorModule.create<DatadogMetricsConfig>({
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();

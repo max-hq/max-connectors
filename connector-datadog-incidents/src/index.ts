@@ -16,6 +16,7 @@ import { DatadogIncidentsOnboarding } from "./onboarding.js";
 import { DatadogIncidentsContext } from "./context.js";
 import { DatadogClient } from "./datadog-client.js";
 import { DatadogApiKey, DatadogAppKey } from "./credentials.js";
+import { DatadogIncidentsOperations } from "./operations.js";
 import type { DatadogIncidentsConfig } from "./config.js";
 
 // ============================================================================
@@ -37,6 +38,7 @@ const DatadogIncidentsDef = ConnectorDef.create<DatadogIncidentsConfig>({
     DatadogIncidentResolver,
     DatadogIncidentTodoResolver,
   ],
+  operations: [...DatadogIncidentsOperations],
 });
 
 // ============================================================================
@@ -45,9 +47,9 @@ const DatadogIncidentsDef = ConnectorDef.create<DatadogIncidentsConfig>({
 
 const DatadogIncidentsConnector = ConnectorModule.create<DatadogIncidentsConfig>({
   def: DatadogIncidentsDef,
-  initialise(config, credentials) {
-    const apiKeyHandle = credentials.get(DatadogApiKey);
-    const appKeyHandle = credentials.get(DatadogAppKey);
+  initialise(config, platform) {
+    const apiKeyHandle = platform.credentials.get(DatadogApiKey);
+    const appKeyHandle = platform.credentials.get(DatadogAppKey);
     const api = new DatadogClient(apiKeyHandle, appKeyHandle, config.site);
 
     const ctx = Context.build(DatadogIncidentsContext, { api });
@@ -56,10 +58,10 @@ const DatadogIncidentsConnector = ConnectorModule.create<DatadogIncidentsConfig>
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();

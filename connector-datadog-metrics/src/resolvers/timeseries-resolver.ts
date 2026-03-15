@@ -20,7 +20,7 @@ export const TimeseriesBasicLoader = Loader.entity({
   entity: DatadogMetricTimeseries,
   strategy: "autoload",
 
-  async load(ref, _ctx) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {});
   },
 });

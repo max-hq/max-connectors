@@ -12,28 +12,6 @@ import {
 } from "@max/core";
 
 // ============================================================================
-// DatadogMetric (leaf — one metric from tag configurations)
-// ============================================================================
-
-export interface DatadogMetric extends EntityDef<{
-  metricName: ScalarField<"string">;
-  metricType: ScalarField<"string">;
-  tags: ScalarField<"string">;
-  includePercentiles: ScalarField<"string">;
-  createdAt: ScalarField<"string">;
-  modifiedAt: ScalarField<"string">;
-}> {}
-
-export const DatadogMetric: DatadogMetric = EntityDef.create("DatadogMetric", {
-  metricName: Field.string(),
-  metricType: Field.string(),
-  tags: Field.string(),
-  includePercentiles: Field.string(),
-  createdAt: Field.string(),
-  modifiedAt: Field.string(),
-});
-
-// ============================================================================
 // DatadogMetricTimeseries (leaf — one data point for a metric)
 // ============================================================================
 
@@ -50,17 +28,39 @@ export const DatadogMetricTimeseries: DatadogMetricTimeseries = EntityDef.create
 });
 
 // ============================================================================
-// DatadogMetricsRoot (root singleton — all collections)
+// DatadogMetric (one metric — owns a collection of timeseries)
+// ============================================================================
+
+export interface DatadogMetric extends EntityDef<{
+  metricName: ScalarField<"string">;
+  metricType: ScalarField<"string">;
+  tags: ScalarField<"string">;
+  includePercentiles: ScalarField<"string">;
+  createdAt: ScalarField<"string">;
+  modifiedAt: ScalarField<"string">;
+  timeseries: CollectionField<DatadogMetricTimeseries>;
+}> {}
+
+export const DatadogMetric: DatadogMetric = EntityDef.create("DatadogMetric", {
+  metricName: Field.string(),
+  metricType: Field.string(),
+  tags: Field.string(),
+  includePercentiles: Field.string(),
+  createdAt: Field.string(),
+  modifiedAt: Field.string(),
+  timeseries: Field.collection(DatadogMetricTimeseries),
+});
+
+// ============================================================================
+// DatadogMetricsRoot (root singleton)
 // ============================================================================
 
 export interface DatadogMetricsRoot extends EntityDef<{
   site: ScalarField<"string">;
   metrics: CollectionField<DatadogMetric>;
-  timeseries: CollectionField<DatadogMetricTimeseries>;
 }> {}
 
 export const DatadogMetricsRoot: DatadogMetricsRoot = EntityDef.create("DatadogMetricsRoot", {
   site: Field.string(),
   metrics: Field.collection(DatadogMetric),
-  timeseries: Field.collection(DatadogMetricTimeseries),
 });

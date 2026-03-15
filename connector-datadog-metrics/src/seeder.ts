@@ -6,22 +6,22 @@
  */
 
 import { Seeder, SyncPlan, Step, EntityInput } from "@max/core";
-import { DatadogMetricsRoot } from "./entities.js";
+import { DatadogMetricsRoot, DatadogMetric } from "./entities.js";
 import { DatadogMetricsContext } from "./context.js";
 
 export const DatadogMetricsSeeder = Seeder.create({
   context: DatadogMetricsContext,
 
-  async seed(ctx, engine) {
+  async seed(env) {
     const rootRef = DatadogMetricsRoot.ref("root");
 
-    await engine.store(EntityInput.create(rootRef, {
-      site: ctx.api.site,
+    await env.engine.store(EntityInput.create(rootRef, {
+      site: env.ctx.api.site,
     }));
 
     return SyncPlan.create([
       Step.forRoot(rootRef).loadCollection("metrics"),
-      Step.forRoot(rootRef).loadCollection("timeseries"),
+      Step.forAll(DatadogMetric).loadCollection("timeseries"),
     ]);
   },
 });

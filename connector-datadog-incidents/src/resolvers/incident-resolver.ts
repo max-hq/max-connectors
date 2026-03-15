@@ -1,17 +1,24 @@
 /**
- * DatadogIncident Resolver — Autoload fallback for incidents.
- *
- * In practice, fields are populated eagerly by IncidentsLoader during
- * collection loading. This entity loader serves as an autoload fallback
- * that returns an empty EntityInput since the data is already present.
+ * DatadogIncident Resolver — Scalar fields + per-incident todos collection.
  */
 
-import { Loader, Resolver, EntityInput } from "@max/core";
-import { DatadogIncident } from "../entities.js";
+import { Loader, Resolver, EntityInput, Page } from "@max/core";
+import { DatadogIncident, DatadogIncidentTodo } from "../entities.js";
 import { DatadogIncidentsContext } from "../context.js";
+import { ListIncidentTodos } from "../operations.js";
 
 // ============================================================================
-// Loader
+// Helpers
+// ============================================================================
+
+function formatTimestamp(value: Date | string | undefined | null): string {
+  if (!value) return "";
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
+}
+
+// ============================================================================
+// Basic loader (autoload fallback — fields populated eagerly by IncidentsLoader)
 // ============================================================================
 
 export const IncidentBasicLoader = Loader.entity({
@@ -20,8 +27,41 @@ export const IncidentBasicLoader = Loader.entity({
   entity: DatadogIncident,
   strategy: "autoload",
 
-  async load(ref, _ctx) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {});
+  },
+});
+
+// ============================================================================
+// Todos collection loader (per-incident)
+// ============================================================================
+
+export const IncidentTodosLoader = Loader.collection({
+  name: "datadog-incidents:incident:todos",
+  context: DatadogIncidentsContext,
+  entity: DatadogIncident,
+  target: DatadogIncidentTodo,
+
+  async load(ref, _page, env) {
+    const result = await env.ops.execute(ListIncidentTodos, {
+      incidentId: ref.id,
+    });
+
+    const items = result.data.map((todo) => {
+      const attrs = todo.attributes;
+
+      return EntityInput.create(DatadogIncidentTodo.ref(todo.id), {
+        todoId: todo.id,
+        incident: DatadogIncident.ref(ref.id),
+        content: attrs.content ?? "",
+        completed: attrs.completed ?? "",
+        dueDate: attrs.dueDate ?? "",
+        created: formatTimestamp(attrs.created),
+        modified: formatTimestamp(attrs.modified),
+      });
+    });
+
+    return Page.from(items, false, undefined);
   },
 });
 
@@ -46,4 +86,5 @@ export const DatadogIncidentResolver = Resolver.for(DatadogIncident, {
   timeToRepair: IncidentBasicLoader.field("timeToRepair"),
   timeToResolve: IncidentBasicLoader.field("timeToResolve"),
   visibility: IncidentBasicLoader.field("visibility"),
+  todos: IncidentTodosLoader.field(),
 });
