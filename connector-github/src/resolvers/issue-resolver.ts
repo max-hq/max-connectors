@@ -14,23 +14,7 @@ import {
 } from "@max/core";
 import { GitHubIssue, GitHubUser } from "../entities.js";
 import { GitHubContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface IssueNodeResponse {
-  node: {
-    number: number;
-    title: string;
-    body: string | null;
-    state: string;
-    createdAt: string;
-    updatedAt: string;
-    labels: { nodes: Array<{ name: string }> };
-    author: { login: string; avatarUrl: string; url: string } | null;
-  } | null;
-}
+import { GetIssue } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -42,20 +26,8 @@ export const IssueBasicLoader = Loader.entity({
   entity: GitHubIssue,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    // ref.id is the GraphQL node ID (populated by RepoIssuesLoader).
-    const data = await ctx.api.graphql<IssueNodeResponse>(
-      `query($id: ID!) {
-        node(id: $id) {
-          ... on Issue {
-            number title body state createdAt updatedAt
-            labels(first: 20) { nodes { name } }
-            author { login avatarUrl url }
-          }
-        }
-      }`,
-      { id: ref.id },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetIssue, { id: ref.id });
     const issue = data.node;
     if (!issue) {
       return EntityInput.create(ref, {});

@@ -14,18 +14,7 @@ import {
 } from "@max/core";
 import { GitHubUser } from "../entities.js";
 import { GitHubContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface UserResponse {
-  user: {
-    login: string;
-    avatarUrl: string;
-    url: string;
-  };
-}
+import { GetUser } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -37,16 +26,8 @@ export const UserBasicLoader = Loader.entity({
   entity: GitHubUser,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    // ref.id is the user's login
-    const data = await ctx.api.graphql<UserResponse>(
-      `query($login: String!) {
-        user(login: $login) {
-          login avatarUrl url
-        }
-      }`,
-      { login: ref.id },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetUser, { login: ref.id });
     return EntityInput.create(ref, {
       login: data.user.login,
       avatarUrl: data.user.avatarUrl,

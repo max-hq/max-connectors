@@ -1,6 +1,11 @@
 import { Loader, Resolver, EntityInput, Page } from "@max/core";
 import { Directory, User, Group, OrgUnit } from "../entities.js";
 import { GoogleWorkspaceContext } from "../context.js";
+import {
+  ListUsers as ListUsersOp,
+  ListGroups as ListGroupsOp,
+  ListOrgUnits as ListOrgUnitsOp,
+} from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -11,10 +16,10 @@ export const DirectoryBasicLoader = Loader.entity({
   context: GoogleWorkspaceContext,
   entity: Directory,
 
-  async load(ref, ctx) {
+  async load(ref, env) {
     return EntityInput.create(ref, {
-      domain: ctx.api.domain,
-      customerId: ctx.api.customerId,
+      domain: env.ctx.api.domain,
+      customerId: env.ctx.api.customerId,
     });
   },
 });
@@ -25,8 +30,8 @@ export const DirectoryUsersLoader = Loader.collection({
   entity: Directory,
   target: User,
 
-  async load(_ref, page, ctx) {
-    const data = await ctx.api.listUsers(page.cursor);
+  async load(_ref, page, env) {
+    const data = await env.ops.execute(ListUsersOp, { pageToken: page.cursor });
     const items = (data.users as Record<string, unknown>[]).map((u) =>
       EntityInput.create(User.ref(u.id as string), {
         email: (u.primaryEmail as string) ?? "",
@@ -50,8 +55,8 @@ export const DirectoryGroupsLoader = Loader.collection({
   entity: Directory,
   target: Group,
 
-  async load(_ref, page, ctx) {
-    const data = await ctx.api.listGroups(page.cursor);
+  async load(_ref, page, env) {
+    const data = await env.ops.execute(ListGroupsOp, { pageToken: page.cursor });
     const items = (data.groups as Record<string, unknown>[]).map((g) =>
       EntityInput.create(Group.ref(g.id as string), {
         email: (g.email as string) ?? "",
@@ -70,8 +75,8 @@ export const DirectoryOrgUnitsLoader = Loader.collection({
   entity: Directory,
   target: OrgUnit,
 
-  async load(_ref, _page, ctx) {
-    const data = await ctx.api.listOrgUnits();
+  async load(_ref, _page, env) {
+    const data = await env.ops.execute(ListOrgUnitsOp, {});
     const items = (data.organizationUnits as Record<string, unknown>[]).map((ou) =>
       EntityInput.create(OrgUnit.ref(ou.orgUnitId as string), {
         name: (ou.name as string) ?? "",

@@ -11,6 +11,7 @@ import {
 } from "@max/core";
 import { Root, Project } from "../entities.js";
 import { CCConversationsContext } from "../context.js";
+import { ListProjects } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -22,8 +23,8 @@ export const RootProjectsLoader = Loader.collection({
   entity: Root,
   target: Project,
 
-  async load(_ref, _page, ctx) {
-    const projectDirs = await ctx.client.listProjects();
+  async load(_ref, _page, env) {
+    const projectDirs = await env.ops.execute(ListProjects, {});
     const items = projectDirs.map((dir) =>
       EntityInput.create(Project.ref(dir), {}),
     );

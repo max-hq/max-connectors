@@ -14,7 +14,7 @@ export const OrgUnitBasicLoader = Loader.entity({
   context: GoogleWorkspaceContext,
   entity: OrgUnit,
 
-  async load(ref) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {
       name: "",
       description: "",

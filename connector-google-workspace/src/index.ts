@@ -11,6 +11,7 @@ import { GoogleWorkspaceOnboarding } from "./onboarding.js";
 import { GoogleWorkspaceContext } from "./context.js";
 import { GoogleWorkspaceClient } from "./google-workspace-client.js";
 import { ServiceAccountKey } from "./credentials.js";
+import { GoogleWorkspaceOperations } from "./operations.js";
 import type { GoogleWorkspaceConfig } from "./config.js";
 
 // ============================================================================
@@ -34,6 +35,7 @@ const GoogleWorkspaceDef = ConnectorDef.create<GoogleWorkspaceConfig>({
     GroupMemberResolver,
     OrgUnitResolver,
   ],
+  operations: [...GoogleWorkspaceOperations],
 });
 
 // ============================================================================
@@ -42,8 +44,8 @@ const GoogleWorkspaceDef = ConnectorDef.create<GoogleWorkspaceConfig>({
 
 const GoogleWorkspaceConnector = ConnectorModule.create<GoogleWorkspaceConfig>({
   def: GoogleWorkspaceDef,
-  initialise(config, credentials) {
-    const keyHandle = credentials.get(ServiceAccountKey);
+  initialise(config, platform) {
+    const keyHandle = platform.credentials.get(ServiceAccountKey);
     const api = new GoogleWorkspaceClient(
       keyHandle,
       config.adminEmail,
@@ -57,10 +59,10 @@ const GoogleWorkspaceConnector = ConnectorModule.create<GoogleWorkspaceConfig>({
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();

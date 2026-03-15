@@ -1,6 +1,7 @@
 import { Loader, Resolver, EntityInput, Page } from "@max/core";
 import { Group, GroupMember } from "../entities.js";
 import { GoogleWorkspaceContext } from "../context.js";
+import { GetGroup, ListGroupMembers } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -12,8 +13,8 @@ export const GroupBasicLoader = Loader.entity({
   entity: Group,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    const g = await ctx.api.getGroup(ref.id);
+  async load(ref, env) {
+    const g = await env.ops.execute(GetGroup, { groupKey: ref.id });
     return EntityInput.create(ref, {
       email: (g.email as string) ?? "",
       name: (g.name as string) ?? "",
@@ -29,8 +30,11 @@ export const GroupMembersLoader = Loader.collection({
   entity: Group,
   target: GroupMember,
 
-  async load(ref, page, ctx) {
-    const data = await ctx.api.listGroupMembers(ref.id, page.cursor);
+  async load(ref, page, env) {
+    const data = await env.ops.execute(ListGroupMembers, {
+      groupKey: ref.id,
+      pageToken: page.cursor,
+    });
     const items = (data.members as Record<string, unknown>[]).map((m) =>
       EntityInput.create(GroupMember.ref(m.id as string), {
         email: (m.email as string) ?? "",

@@ -5,12 +5,12 @@ import { GoogleWorkspaceContext } from "./context.js";
 export const GoogleWorkspaceSeeder = Seeder.create({
   context: GoogleWorkspaceContext,
 
-  async seed(ctx, engine) {
+  async seed(env) {
     const dirRef = Directory.ref("root");
-    await engine.store(
+    await env.engine.store(
       EntityInput.create(dirRef, {
-        domain: ctx.api.domain,
-        customerId: ctx.api.customerId,
+        domain: env.ctx.api.domain,
+        customerId: env.ctx.api.customerId,
       }),
     );
 

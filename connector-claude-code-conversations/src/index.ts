@@ -16,6 +16,7 @@ import { MessageResolver } from "./resolvers/message-resolver.js";
 import { ConversationsOnboarding } from "./onboarding.js";
 import { CCConversationsContext } from "./context.js";
 import { ClaudeClient } from "./claude-client.js";
+import { ConversationsOperations } from "./operations.js";
 import type { CCConversationsConfig } from "./config.js";
 
 // ============================================================================
@@ -54,6 +55,7 @@ const ConversationsDef = ConnectorDef.create<CCConversationsConfig>({
     SessionResolver,
     MessageResolver,
   ],
+  operations: [...ConversationsOperations],
 });
 
 // ============================================================================
@@ -64,7 +66,7 @@ const DEFAULT_CLAUDE_DIR = join(homedir(), ".claude");
 
 const ConversationsConnector = ConnectorModule.create<CCConversationsConfig>({
   def: ConversationsDef,
-  initialise(config, _credentials) {
+  initialise(config, _platform) {
     const claudeDir = config.claudeDir || DEFAULT_CLAUDE_DIR;
     const client = new ClaudeClient(claudeDir);
 

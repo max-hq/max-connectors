@@ -15,52 +15,7 @@ import {
 } from "@max/core";
 import { LinearTeam, LinearIssue, LinearUser, LinearProject } from "../entities.js";
 import { LinearContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface TeamResponse {
-  team: {
-    name: string;
-    key: string;
-    description: string | null;
-  };
-}
-
-interface TeamIssuesResponse {
-  team: {
-    issues: {
-      nodes: Array<{
-        id: string;
-        identifier: string;
-        title: string;
-        description: string | null;
-        priority: number;
-        state: { name: string } | null;
-        assignee: { id: string } | null;
-        project: { id: string } | null;
-      }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string };
-    };
-  };
-}
-
-interface TeamMembersResponse {
-  team: {
-    members: {
-      nodes: Array<{
-        id: string;
-        name: string;
-        email: string;
-        displayName: string;
-        active: boolean;
-        admin: boolean;
-      }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string };
-    };
-  };
-}
+import { GetTeam, ListTeamIssues, ListTeamMembers } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -71,13 +26,8 @@ export const TeamBasicLoader = Loader.entity({
   context: LinearContext,
   entity: LinearTeam,
 
-  async load(ref, ctx) {
-    const data = await ctx.api.graphql<TeamResponse>(
-      `query($id: String!) {
-        team(id: $id) { name key description }
-      }`,
-      { id: ref.id },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetTeam, { id: ref.id });
     return EntityInput.create(ref, {
       name: data.team.name,
       key: data.team.key,
@@ -92,23 +42,11 @@ export const TeamIssuesLoader = Loader.collection({
   entity: LinearTeam,
   target: LinearIssue,
 
-  async load(ref, page, ctx) {
-    const data = await ctx.api.graphql<TeamIssuesResponse>(
-      `query($teamId: String!, $cursor: String) {
-        team(id: $teamId) {
-          issues(first: 250, after: $cursor) {
-            nodes {
-              id identifier title description priority
-              state { name }
-              assignee { id }
-              project { id }
-            }
-            pageInfo { hasNextPage endCursor }
-          }
-        }
-      }`,
-      { teamId: ref.id, cursor: page.cursor },
-    );
+  async load(ref, page, env) {
+    const data = await env.ops.execute(ListTeamIssues, {
+      teamId: ref.id,
+      cursor: page.cursor,
+    });
     const result = data.team.issues;
     const items = result.nodes.map((i) =>
       EntityInput.create(LinearIssue.ref(i.id), {
@@ -131,18 +69,11 @@ export const TeamMembersLoader = Loader.collection({
   entity: LinearTeam,
   target: LinearUser,
 
-  async load(ref, page, ctx) {
-    const data = await ctx.api.graphql<TeamMembersResponse>(
-      `query($teamId: String!, $cursor: String) {
-        team(id: $teamId) {
-          members(first: 250, after: $cursor) {
-            nodes { id name email displayName active admin }
-            pageInfo { hasNextPage endCursor }
-          }
-        }
-      }`,
-      { teamId: ref.id, cursor: page.cursor },
-    );
+  async load(ref, page, env) {
+    const data = await env.ops.execute(ListTeamMembers, {
+      teamId: ref.id,
+      cursor: page.cursor,
+    });
     const result = data.team.members;
     const items = result.nodes.map((u) =>
       EntityInput.create(LinearUser.ref(u.id), {

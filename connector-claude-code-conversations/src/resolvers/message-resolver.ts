@@ -17,6 +17,7 @@ import { Message, Session } from "../entities.js";
 import { CCConversationsContext } from "../context.js";
 import { parseMessageId, sessionId } from "../claude-client.js";
 import { ErrMessageNotFound } from "../errors.js";
+import { GetMessage } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -28,9 +29,13 @@ export const MessageBasicLoader = Loader.entity({
   entity: Message,
   strategy: "autoload",
 
-  async load(ref, ctx) {
+  async load(ref, env) {
     const { projectDir, sessionUuid, messageUuid } = parseMessageId(ref.id);
-    const msg = await ctx.client.getMessage(projectDir, sessionUuid, messageUuid);
+    const msg = await env.ops.execute(GetMessage, {
+      projectDir,
+      sessionUuid,
+      messageUuid,
+    });
 
     if (!msg) {
       throw ErrMessageNotFound.create({ messageId: ref.id });

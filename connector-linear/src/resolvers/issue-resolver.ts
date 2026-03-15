@@ -14,22 +14,7 @@ import {
 } from "@max/core";
 import { LinearIssue, LinearUser, LinearProject } from "../entities.js";
 import { LinearContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface IssueResponse {
-  issue: {
-    identifier: string;
-    title: string;
-    description: string | null;
-    priority: number;
-    state: { name: string } | null;
-    assignee: { id: string } | null;
-    project: { id: string } | null;
-  };
-}
+import { GetIssue } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -41,18 +26,8 @@ export const IssueBasicLoader = Loader.entity({
   entity: LinearIssue,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    const data = await ctx.api.graphql<IssueResponse>(
-      `query($id: String!) {
-        issue(id: $id) {
-          identifier title description priority
-          state { name }
-          assignee { id }
-          project { id }
-        }
-      }`,
-      { id: ref.id },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetIssue, { id: ref.id });
     const i = data.issue;
     return EntityInput.create(ref, {
       identifier: i.identifier,

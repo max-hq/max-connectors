@@ -12,9 +12,9 @@ import { CCConversationsContext } from "./context.js";
 export const ConversationsSeeder = Seeder.create({
   context: CCConversationsContext,
 
-  async seed(_ctx, engine) {
+  async seed(env) {
     const rootRef = Root.ref("root");
-    await engine.store(EntityInput.create(rootRef, {}));
+    await env.engine.store(EntityInput.create(rootRef, {}));
 
     return SyncPlan.create([
       // 1. Discover all projects from root

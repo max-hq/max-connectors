@@ -21,20 +21,20 @@ interface SeedRepoResponse {
 export const GitHubSeeder = Seeder.create({
   context: GitHubContext,
 
-  async seed(ctx, engine) {
-    const data = await ctx.api.graphql<SeedRepoResponse>(
+  async seed(env) {
+    const data = await env.ctx.api.graphql<SeedRepoResponse>(
       `query($owner: String!, $repo: String!) {
         repository(owner: $owner, name: $repo) {
           id name description url
         }
       }`,
-      { owner: ctx.api.owner, repo: ctx.api.repo },
+      { owner: env.ctx.api.owner, repo: env.ctx.api.repo },
     );
 
     const repo = data.repository;
     const repoRef = GitHubRepository.ref(repo.id);
 
-    await engine.store(EntityInput.create(repoRef, {
+    await env.engine.store(EntityInput.create(repoRef, {
       name: repo.name,
       description: repo.description ?? undefined,
       url: repo.url,

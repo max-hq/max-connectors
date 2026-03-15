@@ -15,6 +15,7 @@ import { LinearOnboarding } from "./onboarding.js";
 import { LinearContext } from "./context.js";
 import { LinearClient } from "./linear-client.js";
 import { LinearApiKey } from "./credentials.js";
+import { LinearOperations } from "./operations.js";
 import type { LinearConfig } from "./config.js";
 
 // ============================================================================
@@ -38,6 +39,7 @@ const LinearDef = ConnectorDef.create<LinearConfig>({
     LinearProjectResolver,
     LinearIssueResolver,
   ],
+  operations: [...LinearOperations],
 });
 
 // ============================================================================
@@ -46,8 +48,8 @@ const LinearDef = ConnectorDef.create<LinearConfig>({
 
 const LinearConnector = ConnectorModule.create<LinearConfig>({
   def: LinearDef,
-  initialise(_config, credentials) {
-    const tokenHandle = credentials.get(LinearApiKey);
+  initialise(_config, platform) {
+    const tokenHandle = platform.credentials.get(LinearApiKey);
     const api = new LinearClient(tokenHandle);
 
     const ctx = Context.build(LinearContext, { api });
@@ -56,10 +58,10 @@ const LinearConnector = ConnectorModule.create<LinearConfig>({
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();

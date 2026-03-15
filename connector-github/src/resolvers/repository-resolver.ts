@@ -19,38 +19,7 @@ import {
 } from "@max/core";
 import { GitHubRepository, GitHubIssue, GitHubUser } from "../entities.js";
 import { GitHubContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface RepoResponse {
-  repository: {
-    id: string;
-    name: string;
-    description: string | null;
-    url: string;
-  };
-}
-
-interface IssuesPageData {
-  repository: {
-    issues: {
-      nodes: Array<{
-        id: string;
-        number: number;
-        title: string;
-        body: string | null;
-        state: string;
-        createdAt: string;
-        updatedAt: string;
-        labels: { nodes: Array<{ name: string }> };
-        author: { login: string; avatarUrl: string; url: string } | null;
-      }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string };
-    };
-  };
-}
+import { GetRepo, ListRepoIssues } from "../operations.js";
 
 // ============================================================================
 // Repo basic loader (entity)
@@ -62,15 +31,11 @@ export const RepoBasicLoader = Loader.entity({
   entity: GitHubRepository,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    const data = await ctx.api.graphql<RepoResponse>(
-      `query($owner: String!, $repo: String!) {
-        repository(owner: $owner, name: $repo) {
-          id name description url
-        }
-      }`,
-      { owner: ctx.api.owner, repo: ctx.api.repo },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetRepo, {
+      owner: env.ctx.api.owner,
+      repo: env.ctx.api.repo,
+    });
     return EntityInput.create(ref, {
       name: data.repository.name,
       description: data.repository.description ?? undefined,
@@ -83,28 +48,15 @@ export const RepoBasicLoader = Loader.entity({
 // Issues page source + co-derivations
 // ============================================================================
 
-const ISSUES_QUERY = `query($owner: String!, $repo: String!, $cursor: String) {
-  repository(owner: $owner, name: $repo) {
-    issues(first: 100, after: $cursor, orderBy: {field: CREATED_AT, direction: ASC}) {
-      nodes {
-        id number title body state createdAt updatedAt
-        labels(first: 20) { nodes { name } }
-        author { login avatarUrl url }
-      }
-      pageInfo { hasNextPage endCursor }
-    }
-  }
-}`;
-
 const IssuesPageSource = Loader.paginatedSource({
   name: "github:repo:issues-page" as SourceName,
   context: GitHubContext,
   parent: GitHubRepository,
 
-  async fetch(_ref, page, ctx) {
-    const data = await ctx.api.graphql<IssuesPageData>(ISSUES_QUERY, {
-      owner: ctx.api.owner,
-      repo: ctx.api.repo,
+  async fetch(_ref, page, env) {
+    const data = await env.ops.execute(ListRepoIssues, {
+      owner: env.ctx.api.owner,
+      repo: env.ctx.api.repo,
       cursor: page.cursor,
     });
     const pageInfo = data.repository.issues.pageInfo;

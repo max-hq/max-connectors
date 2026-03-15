@@ -16,38 +16,7 @@ import {
 } from "@max/core";
 import { LinearProject, LinearIssue, LinearUser } from "../entities.js";
 import { LinearContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface ProjectResponse {
-  project: {
-    name: string;
-    description: string | null;
-    state: string;
-    progress: number;
-    startDate: string | null;
-    targetDate: string | null;
-  };
-}
-
-interface ProjectIssuesResponse {
-  project: {
-    issues: {
-      nodes: Array<{
-        id: string;
-        identifier: string;
-        title: string;
-        description: string | null;
-        priority: number;
-        state: { name: string } | null;
-        assignee: { id: string } | null;
-      }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string };
-    };
-  };
-}
+import { GetProject, ListProjectIssues } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -58,13 +27,8 @@ export const ProjectBasicLoader = Loader.entity({
   context: LinearContext,
   entity: LinearProject,
 
-  async load(ref, ctx) {
-    const data = await ctx.api.graphql<ProjectResponse>(
-      `query($id: String!) {
-        project(id: $id) { name description state progress startDate targetDate }
-      }`,
-      { id: ref.id },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetProject, { id: ref.id });
     const p = data.project;
     return EntityInput.create(ref, {
       name: p.name,
@@ -83,22 +47,11 @@ export const ProjectIssuesLoader = Loader.collection({
   entity: LinearProject,
   target: LinearIssue,
 
-  async load(ref, page, ctx) {
-    const data = await ctx.api.graphql<ProjectIssuesResponse>(
-      `query($projectId: String!, $cursor: String) {
-        project(id: $projectId) {
-          issues(first: 250, after: $cursor) {
-            nodes {
-              id identifier title description priority
-              state { name }
-              assignee { id }
-            }
-            pageInfo { hasNextPage endCursor }
-          }
-        }
-      }`,
-      { projectId: ref.id, cursor: page.cursor },
-    );
+  async load(ref, page, env) {
+    const data = await env.ops.execute(ListProjectIssues, {
+      projectId: ref.id,
+      cursor: page.cursor,
+    });
     const result = data.project.issues;
     const items = result.nodes.map((i) =>
       EntityInput.create(LinearIssue.ref(i.id), {

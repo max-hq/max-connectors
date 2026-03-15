@@ -20,12 +20,12 @@ interface OrgResponse {
 export const LinearSeeder = Seeder.create({
   context: LinearContext,
 
-  async seed(ctx, engine) {
-    const { organization: org } = await ctx.api.graphql<OrgResponse>(
+  async seed(env) {
+    const { organization: org } = await env.ctx.api.graphql<OrgResponse>(
       `{ organization { id name urlKey } }`,
     );
     const orgRef = LinearOrganization.ref(org.id);
-    await engine.store(EntityInput.create(orgRef, {
+    await env.engine.store(EntityInput.create(orgRef, {
       name: org.name,
       urlKey: org.urlKey,
     }));

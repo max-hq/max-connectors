@@ -13,6 +13,7 @@ import { GitHubOnboarding } from "./onboarding.js";
 import { GitHubContext } from "./context.js";
 import { GitHubClient } from "./github-client.js";
 import { GitHubToken } from "./credentials.js";
+import { GitHubOperations } from "./operations.js";
 import type { GitHubConfig } from "./config.js";
 
 // ============================================================================
@@ -34,6 +35,7 @@ const GitHubDef = ConnectorDef.create<GitHubConfig>({
     GitHubIssueResolver,
     GitHubUserResolver,
   ],
+  operations: [...GitHubOperations],
 });
 
 // ============================================================================
@@ -42,8 +44,8 @@ const GitHubDef = ConnectorDef.create<GitHubConfig>({
 
 const GitHubConnector = ConnectorModule.create<GitHubConfig>({
   def: GitHubDef,
-  initialise(config, credentials) {
-    const tokenHandle = credentials.get(GitHubToken);
+  initialise(config, platform) {
+    const tokenHandle = platform.credentials.get(GitHubToken);
     const api = new GitHubClient(tokenHandle, config.owner, config.repo);
 
     const ctx = Context.build(GitHubContext, { api });
@@ -52,10 +54,10 @@ const GitHubConnector = ConnectorModule.create<GitHubConfig>({
       context: ctx,
       async start() {
         await api.start();
-        credentials.startRefreshSchedulers();
+        platform.credentials.startRefreshSchedulers();
       },
       async stop() {
-        credentials.stopRefreshSchedulers();
+        platform.credentials.stopRefreshSchedulers();
       },
       async health() {
         const result = await api.health();

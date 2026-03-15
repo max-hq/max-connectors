@@ -12,6 +12,7 @@ import {
 import { Project, Session } from "../entities.js";
 import { CCConversationsContext } from "../context.js";
 import { sessionId } from "../claude-client.js";
+import { GetProjectInfo, ListSessions } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -22,8 +23,8 @@ export const ProjectBasicLoader = Loader.entity({
   context: CCConversationsContext,
   entity: Project,
 
-  async load(ref, ctx) {
-    const info = await ctx.client.getProjectInfo(ref.id);
+  async load(ref, env) {
+    const info = await env.ops.execute(GetProjectInfo, { projectDir: ref.id });
     return EntityInput.create(ref, {
       name: info.name,
       path: info.path,
@@ -37,8 +38,8 @@ export const ProjectSessionsLoader = Loader.collection({
   entity: Project,
   target: Session,
 
-  async load(ref, _page, ctx) {
-    const sessionUuids = await ctx.client.listSessions(ref.id);
+  async load(ref, _page, env) {
+    const sessionUuids = await env.ops.execute(ListSessions, { projectDir: ref.id });
     const items = sessionUuids.map((uuid) =>
       EntityInput.create(Session.ref(sessionId(ref.id, uuid)), {}),
     );

@@ -10,20 +10,7 @@ import {
 } from "@max/core";
 import { LinearUser } from "../entities.js";
 import { LinearContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface UserResponse {
-  user: {
-    name: string;
-    email: string;
-    displayName: string;
-    active: boolean;
-    admin: boolean;
-  };
-}
+import { GetUser } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -35,13 +22,8 @@ export const UserBasicLoader = Loader.entity({
   entity: LinearUser,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    const data = await ctx.api.graphql<UserResponse>(
-      `query($id: String!) {
-        user(id: $id) { name email displayName active admin }
-      }`,
-      { id: ref.id },
-    );
+  async load(ref, env) {
+    const data = await env.ops.execute(GetUser, { id: ref.id });
     const u = data.user;
     return EntityInput.create(ref, {
       name: u.name,

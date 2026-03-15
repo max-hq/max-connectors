@@ -1,6 +1,7 @@
 import { Loader, Resolver, EntityInput } from "@max/core";
 import { User } from "../entities.js";
 import { GoogleWorkspaceContext } from "../context.js";
+import { GetUser } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -12,8 +13,8 @@ export const UserBasicLoader = Loader.entity({
   entity: User,
   strategy: "autoload",
 
-  async load(ref, ctx) {
-    const u = await ctx.api.getUser(ref.id);
+  async load(ref, env) {
+    const u = await env.ops.execute(GetUser, { userKey: ref.id });
     const name = u.name as Record<string, unknown> | undefined;
     return EntityInput.create(ref, {
       email: (u.primaryEmail as string) ?? "",

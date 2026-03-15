@@ -14,58 +14,7 @@ import {
 } from "@max/core";
 import { LinearOrganization, LinearTeam, LinearUser, LinearProject } from "../entities.js";
 import { LinearContext } from "../context.js";
-
-// ============================================================================
-// GraphQL response types
-// ============================================================================
-
-interface OrgResponse {
-  organization: {
-    name: string;
-    urlKey: string;
-  };
-}
-
-interface TeamsResponse {
-  teams: {
-    nodes: Array<{
-      id: string;
-      name: string;
-      key: string;
-      description: string | null;
-    }>;
-    pageInfo: { hasNextPage: boolean; endCursor: string };
-  };
-}
-
-interface UsersResponse {
-  users: {
-    nodes: Array<{
-      id: string;
-      name: string;
-      email: string;
-      displayName: string;
-      active: boolean;
-      admin: boolean;
-    }>;
-    pageInfo: { hasNextPage: boolean; endCursor: string };
-  };
-}
-
-interface ProjectsResponse {
-  projects: {
-    nodes: Array<{
-      id: string;
-      name: string;
-      description: string | null;
-      state: string;
-      progress: number;
-      startDate: string | null;
-      targetDate: string | null;
-    }>;
-    pageInfo: { hasNextPage: boolean; endCursor: string };
-  };
-}
+import { GetOrganization, ListOrgTeams, ListOrgUsers, ListOrgProjects } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -76,10 +25,8 @@ export const OrgBasicLoader = Loader.entity({
   context: LinearContext,
   entity: LinearOrganization,
 
-  async load(ref, ctx) {
-    const { organization: org } = await ctx.api.graphql<OrgResponse>(
-      `{ organization { name urlKey } }`,
-    );
+  async load(ref, env) {
+    const { organization: org } = await env.ops.execute(GetOrganization, {});
     return EntityInput.create(ref, {
       name: org.name,
       urlKey: org.urlKey,
@@ -93,16 +40,8 @@ export const OrgTeamsLoader = Loader.collection({
   entity: LinearOrganization,
   target: LinearTeam,
 
-  async load(_ref, page, ctx) {
-    const data = await ctx.api.graphql<TeamsResponse>(
-      `query($cursor: String) {
-        teams(first: 250, after: $cursor) {
-          nodes { id name key description }
-          pageInfo { hasNextPage endCursor }
-        }
-      }`,
-      { cursor: page.cursor },
-    );
+  async load(_ref, page, env) {
+    const data = await env.ops.execute(ListOrgTeams, { cursor: page.cursor });
     const items = data.teams.nodes.map((t) =>
       EntityInput.create(LinearTeam.ref(t.id), {
         name: t.name,
@@ -120,16 +59,8 @@ export const OrgUsersLoader = Loader.collection({
   entity: LinearOrganization,
   target: LinearUser,
 
-  async load(_ref, page, ctx) {
-    const data = await ctx.api.graphql<UsersResponse>(
-      `query($cursor: String) {
-        users(first: 250, after: $cursor, includeArchived: true, includeDisabled: true) {
-          nodes { id name email displayName active admin }
-          pageInfo { hasNextPage endCursor }
-        }
-      }`,
-      { cursor: page.cursor },
-    );
+  async load(_ref, page, env) {
+    const data = await env.ops.execute(ListOrgUsers, { cursor: page.cursor });
     const items = data.users.nodes.map((u) =>
       EntityInput.create(LinearUser.ref(u.id), {
         name: u.name,
@@ -149,16 +80,8 @@ export const OrgProjectsLoader = Loader.collection({
   entity: LinearOrganization,
   target: LinearProject,
 
-  async load(_ref, page, ctx) {
-    const data = await ctx.api.graphql<ProjectsResponse>(
-      `query($cursor: String) {
-        projects(first: 250, after: $cursor) {
-          nodes { id name description state progress startDate targetDate }
-          pageInfo { hasNextPage endCursor }
-        }
-      }`,
-      { cursor: page.cursor },
-    );
+  async load(_ref, page, env) {
+    const data = await env.ops.execute(ListOrgProjects, { cursor: page.cursor });
     const items = data.projects.nodes.map((p) =>
       EntityInput.create(LinearProject.ref(p.id), {
         name: p.name,

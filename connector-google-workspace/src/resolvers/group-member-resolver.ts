@@ -14,7 +14,7 @@ export const GroupMemberBasicLoader = Loader.entity({
   context: GoogleWorkspaceContext,
   entity: GroupMember,
 
-  async load(ref) {
+  async load(ref, _env) {
     return EntityInput.create(ref, {
       email: "",
       role: "",

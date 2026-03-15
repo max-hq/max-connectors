@@ -15,6 +15,7 @@ import {
 import { Session, Message, Project } from "../entities.js";
 import { CCConversationsContext } from "../context.js";
 import { parseSessionId, messageId } from "../claude-client.js";
+import { GetSessionMetadata, ListSessionMessages } from "../operations.js";
 
 // ============================================================================
 // Loaders
@@ -26,9 +27,12 @@ export const SessionBasicLoader = Loader.entity({
   entity: Session,
   strategy: "autoload",
 
-  async load(ref, ctx) {
+  async load(ref, env) {
     const { projectDir, sessionUuid } = parseSessionId(ref.id);
-    const meta = await ctx.client.getSessionMetadata(projectDir, sessionUuid);
+    const meta = await env.ops.execute(GetSessionMetadata, {
+      projectDir,
+      sessionUuid,
+    });
 
     return EntityInput.create(ref, {
       title: meta.title,
@@ -52,9 +56,12 @@ export const SessionMessagesLoader = Loader.collection({
   entity: Session,
   target: Message,
 
-  async load(ref, _page, ctx) {
+  async load(ref, _page, env) {
     const { projectDir, sessionUuid } = parseSessionId(ref.id);
-    const messages = await ctx.client.getSessionMessages(projectDir, sessionUuid);
+    const messages = await env.ops.execute(ListSessionMessages, {
+      projectDir,
+      sessionUuid,
+    });
 
     const items = messages.map((msg) =>
       EntityInput.create(
